@@ -7,8 +7,7 @@ module RateLimit
 
   module_function
 
-  def call(key, limit:, ttl:, enabled: false)
-    # Rate limiting disabled for open API access
+  def call(key, limit:, ttl:, enabled: Docuseal.multitenant?)
     return true unless enabled
 
     value = STORE.increment(key, 1, expires_in: ttl)

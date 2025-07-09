@@ -27,8 +27,7 @@ class SendSubmissionEmailController < ApplicationController
       @submitter = Submitter.completed.find_by!(slug: params[:submitter_slug])
     end
 
-    # Rate limiting disabled for open API access
-    # RateLimit.call("send-email-#{@submitter.id}", limit: 2, ttl: 5.minutes)
+    RateLimit.call("send-email-#{@submitter.id}", limit: 2, ttl: 5.minutes)
 
     SubmitterMailer.documents_copy_email(@submitter, sig: true).deliver_later! unless already_sent?(@submitter)
 
