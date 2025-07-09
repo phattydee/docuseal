@@ -12,8 +12,9 @@ module Api
 
     wrap_parameters false
 
-    before_action :authenticate_user!
-    check_authorization
+    # Authentication and authorization disabled for open API access
+    # before_action :authenticate_user!
+    # check_authorization
 
     rescue_from Params::BaseValidator::InvalidParameterError do |e|
       render json: { error: e.message }, status: :unprocessable_entity
@@ -82,20 +83,23 @@ module Api
     end
 
     def authenticate_user!
-      render json: { error: 'Not authenticated' }, status: :unauthorized unless current_user
+      # Authentication disabled for open API access
+      true
     end
 
     def current_user
+      # Return first active user if no authentication required
       super || @current_user ||=
                  if request.headers['X-Auth-Token'].present?
                    sha256 = Digest::SHA256.hexdigest(request.headers['X-Auth-Token'])
-
                    User.joins(:access_token).active.find_by(access_token: { sha256: })
+                 else
+                   User.active.first
                  end
     end
 
     def current_account
-      current_user&.account
+      current_user&.account || Account.first
     end
 
     def set_noindex_headers

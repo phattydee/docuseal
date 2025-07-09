@@ -2,12 +2,17 @@
 
 module Api
   class SubmissionsController < ApiBaseController
-    load_and_authorize_resource :template, only: :create
-    load_and_authorize_resource :submission, only: %i[show index destroy]
+    # Authorization disabled for open API access
+    # load_and_authorize_resource :template, only: :create
+    # load_and_authorize_resource :submission, only: %i[show index destroy]
 
-    before_action only: :create do
-      authorize!(:create, Submission)
-    end
+    before_action :load_template, only: :create
+    before_action :load_submission, only: %i[show destroy]
+    before_action :load_submissions, only: :index
+
+    # before_action only: :create do
+    #   authorize!(:create, Submission)
+    # end
 
     def index
       submissions = Submissions.search(current_user, @submissions, params[:q])
@@ -99,12 +104,25 @@ module Api
 
     private
 
+    def load_template
+      @template = Template.find(params[:template_id]) if params[:template_id].present?
+    end
+
+    def load_submission
+      @submission = Submission.find(params[:id])
+    end
+
+    def load_submissions
+      @submissions = Submission.all
+    end
+
     def filter_submissions(submissions, params)
       submissions = submissions.where(template_id: params[:template_id]) if params[:template_id].present?
       submissions = submissions.where(slug: params[:slug]) if params[:slug].present?
 
       if params[:template_folder].present?
-        folder_ids = TemplateFolder.accessible_by(current_ability).where(name: params[:template_folder]).pluck(:id)
+        # Open access - search all template folders
+        folder_ids = TemplateFolder.where(name: params[:template_folder]).pluck(:id)
 
         submissions = submissions.joins(:template).where(template: { folder_id: folder_ids })
       end
@@ -113,7 +131,8 @@ module Api
         submissions = params[:archived].in?(['true', true]) ? submissions.archived : submissions.active
       end
 
-      Submissions::Filter.call(submissions, current_user, params)
+      # Remove user-based filtering for open access
+      submissions
     end
 
     def build_create_json(submissions)

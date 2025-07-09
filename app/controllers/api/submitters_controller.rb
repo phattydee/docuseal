@@ -2,10 +2,15 @@
 
 module Api
   class SubmittersController < ApiBaseController
-    load_and_authorize_resource :submitter
+    # Authorization disabled for open API access
+    # load_and_authorize_resource :submitter
+    
+    before_action :load_submitter, only: %i[show update]
+    before_action :load_submitters, only: :index
 
     def index
-      submitters = Submitters.search(current_user, @submitters, params[:q])
+      # Remove user-based search for open access
+      submitters = @submitters
 
       submitters = filter_submitters(submitters, params)
 
@@ -91,6 +96,14 @@ module Api
     end
 
     private
+
+    def load_submitter
+      @submitter = Submitter.find(params[:id])
+    end
+
+    def load_submitters
+      @submitters = Submitter.all
+    end
 
     def maybe_filder_by_completed_at(submitters, params)
       if params[:completed_after].present?

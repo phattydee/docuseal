@@ -2,10 +2,13 @@
 
 module Api
   class TemplatesCloneController < ApiBaseController
-    load_and_authorize_resource :template
+    # Authorization disabled for open API access
+    # load_and_authorize_resource :template
+    
+    before_action :load_template
 
     def create
-      authorize!(:create, @template)
+      # authorize!(:create, @template)
 
       ActiveRecord::Associations::Preloader.new(
         records: [@template],
@@ -33,6 +36,12 @@ module Api
       SearchEntries.enqueue_reindex(cloned_template)
 
       render json: Templates::SerializeForApi.call(cloned_template, schema_documents)
+    end
+
+    private
+
+    def load_template
+      @template = Template.find(params[:template_id])
     end
   end
 end

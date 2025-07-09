@@ -2,7 +2,11 @@
 
 module Api
   class TemplatesController < ApiBaseController
-    load_and_authorize_resource :template
+    # Authorization disabled for open API access
+    # load_and_authorize_resource :template
+    
+    before_action :load_template, only: %i[show update destroy]
+    before_action :load_templates, only: :index
 
     def index
       templates = filter_templates(@templates, params)
@@ -84,15 +88,25 @@ module Api
 
     private
 
+    def load_template
+      @template = Template.find(params[:id])
+    end
+
+    def load_templates
+      @templates = Template.all
+    end
+
     def filter_templates(templates, params)
-      templates = Templates.search(current_user, templates, params[:q])
+      # Remove user-based search for open access
+      templates = Template.where(id: templates.select(:id)) if params[:q].present?
       templates = params[:archived].in?(['true', true]) ? templates.archived : templates.active
       templates = templates.where(external_id: params[:application_key]) if params[:application_key].present?
       templates = templates.where(external_id: params[:external_id]) if params[:external_id].present?
       templates = templates.where(slug: params[:slug]) if params[:slug].present?
 
       if params[:folder].present?
-        folder_ids = TemplateFolder.accessible_by(current_ability).where(name: params[:folder]).pluck(:id)
+        # Open access - search all template folders
+        folder_ids = TemplateFolder.where(name: params[:folder]).pluck(:id)
 
         templates = templates.where(folder_id: folder_ids)
       end
